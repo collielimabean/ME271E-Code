@@ -8,15 +8,45 @@
 clear; % clear workspace
 addpath('DontModify'); % Make sure Matlab can see all the functions it needs to call from the folder: 'DontModify'
 
-% airfoil data
+%% Import airfoil data
 AF_polars_name = 'NACA_23112_T1_Re0.250_M0.05_N9.0.txt';   % file with airfoil polars
 AFpolars = importdata(AF_polars_name,' ',11);              % import the airfoil polaras
 
+% decompose AFpolars data
+c_d = AFpolars.data(:, 3);
+c_l = AFpolars.data(:, 2);
+alpha = AFpolars.data(:, 1);
+
+%% Linear & Quadratic Fits
 % Determine how airfoil drag depends on lift in the linear part of the 0-max lift region
 % Uncomment the line below and fill in the appropriate range
-% profile_drag = fit(AFpolars.data(?:?,2),AFpolars.data(?:?,3),'poly2');
+linear_range = 14:33;
+profile_drag = fit(c_l(linear_range), c_d(linear_range), 'poly2');
+profile_lift = fit(alpha(linear_range), c_l(linear_range), 'poly1');
 
-% propeller data
+%% H1, Part B plots
+c_d_hat = profile_drag(c_l(linear_range));
+c_l_hat = profile_lift(alpha(linear_range));
+
+figure
+hold on
+plot(c_d, c_l);
+plot(c_d_hat, c_l(linear_range));
+xlabel("c_d");
+ylabel("c_l");
+title("c_l vs c_d");
+legend("data", "fit");
+
+figure
+hold on
+plot(alpha, c_l);
+plot(alpha(linear_range), c_l_hat);
+xlabel("alpha");
+ylabel("c_l");
+title("c_l vs alpha");
+legend("data", "fit");
+
+%% propeller data
 [propellerdata, RPM_propellers] = propellerstuff();     % run to get the propeller information
 staticprop = 'apce_9x6_static_rd0987.txt';              % static prop data filename
 static_prop = importdata(staticprop);                   % static prop data
