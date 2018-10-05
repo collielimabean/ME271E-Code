@@ -13,9 +13,9 @@ b = 1.55;                                                   % m, wingspan
 AR = 6;                                                     % -, aspect ratio
 
 % Start with 14000 RPM in problem 1
-RPMs = 14000;
+%RPMs = 14000;
 % Use this range of RPMs for the final part of problem 1
-% RPMs = 4000:500:40000;
+RPMs = 4000:500:40000;
 
 % store vectors for iterating over the RPMs
 Routput = nan+zeros(size(RPMs));
@@ -44,7 +44,7 @@ for RPMk = 1:length(RPMs)
     tovercroot = 0.12;                                      % wing root thickness to chord ratio 
     lambda = 1;                                             % -, taper ratio    
     % t_hover = 60 for the final two parts of problem 1 and for problem of 2
-    t_hover = 0;                                            % s, hover time
+    t_hover = 60;                                            % s, hover time
     
     %% general information on batteries/efficiencies (Li-ion) - given
     k_battery = 150;                                        % battery energy density, Wh/kg
@@ -61,18 +61,18 @@ for RPMk = 1:length(RPMs)
     
     %% propeller info - insert your calculations here for the propeller
     % get propeller efficiency and CT and CP. Use get_propeller_parameters_static
-    [CP_prop, CT_prop] = get_propeller_parameters_static(Modify);
+    [CP_prop, CT_prop] = get_propeller_parameters_static(static_prop, RPM_prop);
     % get the propeller power and thrust, Pprop = ?; Tprop = ?;
-    Pprop = Modify;                                          % propeller power, Watts
-    Tprop = Modify;                                          % propeller thrust, N
+    Pprop = CP_prop * rho * n^3 * Dprop^5;                % propeller power, Watts
+    Tprop =  CT_prop * rho * n^2 * Dprop^4;               % propeller thrust, N
     %% masses calculations
-    m_total = Modify;                                        % total mass, kg
-    m_fixed = Modify;                                        % fixed mass, kg
-    m_body = Modify;                                         % body mass, kg
-    m_wing = Modify;                                         % wing mass, kg
-    m_esc = Modify;                                          % esc weight (each)
-    m_motor = Modify;                                        % motor weight (each)
-    m_battery = Modify;                                      % battery weight
+    m_total = (eta_int * n_props * Tprop) / (g * zeta);            % total mass, kg
+    m_fixed = m_payload + m_avionics;                        % fixed mass, kg
+    m_body = 0.15 * m_total + 0.05 * m_payload;              % body mass, kg
+    m_wing = 0.0038 * (Nz * m_total)^1.06 * (AR^0.38) * (S^0.25) * (1 + lambda)^0.21 * (tovercroot^-0.14); % wing mass, kg
+    m_esc = (1 / k_esc) * (Pprop / eta_motor);               % esc weight (each)
+    m_motor = (1 / k_motor) * Pprop;                         % motor weight (each)
+    m_battery = m_total - m_body - m_wing - m_fixed - n_props * (m_motor + m_esc + m_prop); % battery weight
     % calculate cargo bay size - include batteries + fixed. This is scaled and given for the first two problems. You may change it for your own vehicle as long as you justify your changes.
     m_hold = m_fixed + m_battery;                            % cargo bay size
     BODYMASS(RPMk) = m_body;
@@ -86,12 +86,12 @@ for RPMk = 1:length(RPMs)
     % if the battery mass is positive and the propeller fits then continue on with the analyis, otherwise stop - this is not a valid RPM    
     if(m_battery>0 && Dprop<wbody/1.25)   
         %% needed CL and CD
-        Percent_BattMass(RPMk) = Modify;                     % calculate proportion battery mass compared to the weight of the entire vehicle
-        Percent_PayloadMass(RPMk) = Modify;                  % calculate proportion payload mass compared to the weight of the entire vehicle
+        Percent_BattMass(RPMk) = m_battery / m_total;       % calculate proportion battery mass compared to the weight of the entire vehicle
+        Percent_PayloadMass(RPMk) = m_payload / m_total;    % calculate proportion payload mass compared to the weight of the entire vehicle
         % calculate the dynamic pressure, q
-        q = Modify;
+        q = 0.5 * rho * v_cruise^2;
         % calculate the coefficient of lift
-        CL = Modify;
+        CL = (m_total * g) / (q * S);
         % check that CL is a reasonable value. If not, go on to the next iteration
         CLmax_possible = 1.27;
         if(CL>CLmax_possible*.9)
@@ -101,53 +101,53 @@ for RPMk = 1:length(RPMs)
         CL_temp(RPMk) = CL;
         
         % get the profile drag for this CL. Use the profile_drag function you created earlier
-        CD0 = Modify;
+        CD0 = profile_drag(CL);
         % get the body drag using the relationship given in class
         ct_ratio = lbody/hbody;
         CDstar = getCDstar(ct_ratio);
         % calculate the scaled frontal drag coefficient
-        Afront = Modify;        
-        CDbodyfront = Modify;
+        Afront = wbody * hbody;        
+        CDbodyfront = CDstar * (Afront / S);
         % calculate the total CD
-        CD = Modify;
+        CD = CDbodyfront + CD0 + (CL^2) / (pi * AR * e);
         % calculate the glide ratio here
         GlideRatio(RPMk) = Modify;
         % calculate the thrust needed for level flight
-        D_level = Modify;
+        D_level = CD * q * S;
         
     %% calculate n for cruise flight and hovering flight
-        Tprop_hover = Modify;
-        Tprop_level = Modify;
+        Tprop_hover = m_total * g;
+        Tprop_level = D_level;
         % calculate the needed thrust per propeller for both level and hovering flight       
-        Tprop_hover_per_prop = Modify;
-        Tprop_level_per_prop = Modify;
+        Tprop_hover_per_prop = Tprop_hover / n_props;
+        Tprop_level_per_prop = Tprop_level / n_props;
         % get the rotations per second needed for each of these using the provided functions        
-        n_hover = find_n_for_thrust_static(Modify);
-        n_level = find_n_for_thrust(Modify);
+        n_hover = find_n_for_thrust_static(static_prop, Dprop, rho, Tprop_hover_per_prop);
+        n_level = find_n_for_thrust(propellerdata, RPM_propellers, v_cruise, Dprop, rho, Tprop_level_per_prop);
         % calculate the advance ratio for level flight
-        J_level = Modify;
+        J_level = v_cruise / (n_level * Dprop);
         J_level_iter(RPMk) = J_level;
         % get the propeller parameters for level flight
-        [CP_hover, CT_hover] = get_propeller_parameters_static(Modify);
-        [eta_level, CP_level, CT_level] = get_propeller_parameters(Modify); 
+        [CP_hover, CT_hover] = get_propeller_parameters_static(static_prop, RPM_prop);
+        [eta_level, CP_level, CT_level] = get_propeller_parameters(propellerdata, RPM_propellers, RPM_prop, J_level); 
         % calculate the power needed for level and hovering flight
-        Pprop_hover = Modify;
-        Pprop_level = Modify;
+        Pprop_hover = n_props * CP_hover * rho * n_hover^3 * Dprop^5;
+        Pprop_level = n_props * CP_level * rho * n_level^3 * Dprop^5;
         % store the propeller efficiency of each step, eta_props(RPMk) = ?;
-        eta_props(RPMk) = Modify;           % propeller efficiency
+        eta_props(RPMk) = J_level * (CT_level / CP_level);           % propeller efficiency
         
     %% battery calculations
         % calculate the battery energy 
-        E_battery = Modify;                                      % battery energy, Wh
+        E_battery = m_battery * k_battery;                           % battery energy, Wh
         % calculate the battery power needed for hover and level flight
-        Pbat_hover = Modify;
-        Pbat_level = Modify;
+        Pbat_hover = Pprop_hover / (eta_esc * eta_motor);
+        Pbat_level = Pprop_level / (eta_esc * eta_motor);
         % calculate the time spent in level flight
-        t_level = Modify;
+        t_level = (f_battery * (E_battery * 3600) - t_hover * Pbat_hover) / Pbat_level;
         % calculate the time spent total in flight
-        FlightTime(RPMk) = Modify;                               % time in hours
+        FlightTime(RPMk) = t_level / 3600;                               % time in hours
         % calculate the flight range
-        R = Modify;                                              % Range, m
+        R = t_level * v_cruise;                                  % Range, m
         R = R/1000;                                              % Range, km
         % store the range and mass
         Routput(RPMk) = R;
@@ -155,8 +155,8 @@ for RPMk = 1:length(RPMs)
         
     %% Check range calculation against complete formula
         if t_hover == 0
-            eta_propulsion = Modify;
-            Rformula = Modify;      % range based on complete formula (m)
+            eta_propulsion = eta_esc * eta_motor * eta_props(RPMk);
+            Rformula = (k_battery * 3600 / g) * f_battery * Percent_BattMass * (CL / CD) * eta_propulsion; % range based on complete formula (m)
             Rformula = Rformula/1000; % convert to km
             fprintf('R from code: %6.2f, R from formula: %6.2f\n', R, Rformula);
         end
@@ -205,10 +205,10 @@ end
 
 %% this code plots the RPM outputs. You may use it to get the outputs for the first problem. 
 % You should also use it in order to check that the RPM range input is correct for your vehicle
-% 
-% figure; 
-% plot(RPMs,Routput, 'LineWidth', 2);
-% set(gca, 'FontSize', 12);
-% xlabel('max propeller RPM')
-% ylabel('range (km)')
-% fprintf('Max range = %6.2fkm\n', max(Routput));
+
+figure; 
+plot(RPMs,Routput, 'LineWidth', 2);
+set(gca, 'FontSize', 12);
+xlabel('max propeller RPM')
+ylabel('range (km)')
+fprintf('Max range = %6.2fkm\n', max(Routput));
