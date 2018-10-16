@@ -9,16 +9,16 @@ tic;
 
 %% Ultimate Optimization
 % define the minimum and maximum payload
-min_payload = 0.5; % kg
-max_payload = 3; % kg
-nStepsP = 6;
+min_payload = 1; % kg
+max_payload = 1; % kg
+nStepsP = 1;
 % define the minimum and maximum cruise velocity
-min_velocity = 1; % m/s
-max_velocity = 10; % m/s
+min_velocity = 10; % m/s
+max_velocity = 22; % m/s
 nStepsV = 4;
 % define the minimum and maximum wingspan
-min_wingspan = 0.55; % m
-max_wingspan = 2.05; % m
+%min_wingspan = 0.55; % m
+%max_wingspan = 2.05; % m
 nStepsWS = 4;
 % define the minimum and maximum aspect ratio
 min_AR = 5; % -
@@ -28,8 +28,9 @@ nStepsAR = 4;
 % use those to calculate the range for the optimization
 payload_U = linspace(min_payload,max_payload,nStepsP);
 v_U = linspace(min_velocity,max_velocity,nStepsV);
-wing_U = linspace(min_wingspan,max_wingspan,nStepsWS);
+%wing_U = linspace(min_wingspan,max_wingspan,nStepsWS);
 AR_U = linspace(min_AR,max_AR,nStepsAR);
+wing_U = sqrt(AR_U * 1.55^2 / 6);
 
 %Define matrices for data collection
 RANGES_U = zeros(nStepsAR, nStepsWS, nStepsV, nStepsP);
@@ -95,4 +96,23 @@ UAV_bodymass = bodymass_U(A,B,C,D);
 UAV_wingmass = wingmass_U(A,B,C,D);
 UAV_propulsionmass = propulsionmass_U(A,B,C,D);
 
+%% Part c, part i Plot maximum range versus cruise velocity
+% using line plots for different wing aspect ratio
+% values (each value for aspect ratio should be a separate line).
+
+for i = 1:nStepsAR
+    maxRanges = zeros(1, nStepsV);
+    for j = 1:nStepsV
+        maxRanges(j,:) = max(RANGES_U(:, :, j, :));
+    end
+    plot(v_U, maxRanges(i, :), 'DisplayName', strcat('AR=', num2str(AR_U(i))));
+    hold on
+end
+hold off
+legend
+xlabel('Cruise Velocity (m/s)')
+ylabel('Maximum Range (km)')
+title('Part (c) Maximum Range vs Cruise Velocity')
+
+%%
 toc;
