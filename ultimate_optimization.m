@@ -9,21 +9,21 @@ tic;
 
 %% Ultimate Optimization
 % define the minimum and maximum payload
-min_payload = 1; % kg
-max_payload = 10; % kg
-nStepsP = 3;
+min_payload = 0.5; % kg
+max_payload = 3; % kg
+nStepsP = 6;
 % define the minimum and maximum cruise velocity
 min_velocity = 1; % m/s
 max_velocity = 10; % m/s
-nStepsV = 3;
+nStepsV = 4;
 % define the minimum and maximum wingspan
-min_wingspan = 1; % m
-max_wingspan = 10; % m
-nStepsWS = 3;
+min_wingspan = 0.55; % m
+max_wingspan = 2.05; % m
+nStepsWS = 4;
 % define the minimum and maximum aspect ratio
-min_AR = 1; % -
-max_AR = 10; % -
-nStepsAR = 3;
+min_AR = 5; % -
+max_AR = 14; % -
+nStepsAR = 4;
 
 % use those to calculate the range for the optimization
 payload_U = linspace(min_payload,max_payload,nStepsP);
@@ -46,10 +46,10 @@ propulsionmass_U = zeros(nStepsAR, nStepsWS, nStepsV, nStepsP);
 
 
 % Loop
-for j_ar = 1:nStepsAR;
-    for j_w = 1:nStepsWS;
-        for j_v = 1:nStepsV;
-            for j_m = 1:nStepsP;
+for j_ar = 1:nStepsAR
+    for j_w = 1:nStepsWS
+        for j_v = 1:nStepsV
+            for j_m = 1:nStepsP
                 mass_Uav = payload_U(j_m);
                 velocity_Uav = v_U(j_v);
                 wing_Uav = wing_U(j_w);
