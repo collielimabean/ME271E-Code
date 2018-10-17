@@ -9,17 +9,17 @@ tic;
 
 %% Ultimate Optimization
 % define the minimum and maximum payload
-min_payload = 0.5; % kg
-max_payload = 3; % kg
-nStepsP = 6;
+min_payload = 1; % kg
+max_payload = 1; % kg
+nStepsP = 1;
 % define the minimum and maximum cruise velocity
-min_velocity = 18; % m/s
-max_velocity = 18; % m/s
-nStepsV = 1;
+min_velocity = 10; % m/s
+max_velocity = 22; % m/s
+nStepsV = 4;
 % define the minimum and maximum wingspan
-min_wingspan = 1.55; % m
-max_wingspan = 1.55; % m
-nStepsWS = 1;
+%in_wingspan = 1.55; % m
+%max_wingspan = 1.55; % m
+nStepsWS = 4;
 % define the minimum and maximum aspect ratio
 min_AR = 5; % -
 max_AR = 14; % -
@@ -28,9 +28,9 @@ nStepsAR = 4;
 % use those to calculate the range for the optimization
 payload_U = linspace(min_payload,max_payload,nStepsP);
 v_U = linspace(min_velocity,max_velocity,nStepsV);
-wing_U = linspace(min_wingspan,max_wingspan,nStepsWS);
+%wing_U = linspace(min_wingspan,max_wingspan,nStepsWS);
 AR_U = linspace(min_AR,max_AR,nStepsAR);
-%wing_U = sqrt((AR_U * 1.55^2)/6);
+wing_U = sqrt((AR_U * 1.55^2)/6);
 
 %Define matrices for data collection
 RANGES_U = zeros(nStepsAR, nStepsWS, nStepsV, nStepsP);
@@ -44,13 +44,14 @@ Eta_PRPLSN_U = zeros(nStepsAR, nStepsWS, nStepsV, nStepsP);
 bodymass_U = zeros(nStepsAR, nStepsWS, nStepsV, nStepsP);
 wingmass_U = zeros(nStepsAR, nStepsWS, nStepsV, nStepsP);
 propulsionmass_U = zeros(nStepsAR, nStepsWS, nStepsV, nStepsP);
+RANGEFORM_U = zeros(nStepsAR, nStepsWS, nStepsV, nStepsP);
 
 
 % Loop
 for j_ar = 1:nStepsAR
-    for j_w = 1:nStepsWS
+    %for j_w = 1:nStepsWS
+    for j_w = j_ar
         for j_v = 1:nStepsV
-       %for j_w = j_v
             for j_m = 1:nStepsP
                 mass_Uav = payload_U(j_m);
                 velocity_Uav = v_U(j_v);
@@ -68,6 +69,7 @@ for j_ar = 1:nStepsAR
                 bodymass_U(j_ar,j_w,j_v,j_m) = UAV.BODYMASS;
                 wingmass_U(j_ar,j_w,j_v,j_m) = UAV.WINGMASS;
                 propulsionmass_U(j_ar,j_w,j_v,j_m) = UAV.PROPULSIONMASS;
+                RANGEFORM_U(j_ar, j_w, j_v, j_m) = UAV.rangeform;
                 fprintf('AR=%d/%d, WS=%d/%d, Vel=%d/%d, PL=%d/%d\n', j_ar,nStepsAR , j_w,nStepsWS , j_v,nStepsV , j_m,nStepsP);
             end
         end
@@ -109,24 +111,22 @@ UAV_propulsionmass = propulsionmass_U(A,B,C,D);
 % title('Part (c) (i) Maximum Range vs Cruise Velocity')
 
 %% Part c, part ii
-% for i = 1:nStepsAR
-%     plot(v_U, reshape(max(RANGES_U(:, i, :, :)), 1, nStepsV), 'DisplayName', strcat('AR=', num2str(AR_U(i))));
-%     hold on
-% end
-% 
-% % additional simulated
-% rform_U = (5.5046e+04) * BATTS_U .* GlideRatio_U .* Eta_PRPLSN_U / 1000;
-% 
-% for i=1:nStepsAR
-%     plot(v_U, reshape(max(rform_U(:, i, :, :)), 1, nStepsV), 'DisplayName', strcat('Formula AR=', num2str(AR_U(i))));
-%     hold on
-% end
-% 
-% hold off
-% legend
-% xlabel('Cruise Velocity (m/s)')
-% ylabel('Maximum Range (km)')
-% title('Part (c) (ii) Maximum Range vs Cruise Velocity')
+for i = 1:nStepsAR
+    plot(v_U, reshape(max(RANGES_U(:, i, :, :)), 1, nStepsV), 'DisplayName', strcat('AR=', num2str(AR_U(i))));
+    hold on
+end
+
+% additional simulated
+for i=1:nStepsAR
+    plot(v_U, reshape(max(RANGEFORM_U(:, i, :, :)), 1, nStepsV), 'LineStyle', '--', 'DisplayName', strcat('Formula AR=', num2str(AR_U(i))));
+    hold on
+end
+
+hold off
+legend
+xlabel('Cruise Velocity (m/s)')
+ylabel('Maximum Range (km)')
+title('Part (c) (ii) Maximum Range vs Cruise Velocity')
 
 %% Part d, aspect ratio
 % for i = 1:nStepsP
