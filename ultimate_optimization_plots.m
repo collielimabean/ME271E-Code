@@ -23,15 +23,19 @@ pie(mass_spectrum,labels);
 title('Distribution of mass in the UAV');
 
 %%  plot a payload mass (y) vs range in km (x). also plot effects of wing area/aspect ratio
+F_lambda = zeros(size(RANGES_U));
+F_t_hover = zeros(size(RANGES_U));
 F_AR = zeros(size(RANGES_U));
 F_WS = zeros(size(RANGES_U));
 F_V = zeros(size(RANGES_U));
 F_PL = zeros(size(RANGES_U));
 for i = 1:length(RANGES_U(:))
-    [j_ar,~,~,~] = ind2sub(size(RANGES_U),i);
-    [~,j_w,~,~] = ind2sub(size(RANGES_U),i);
-    [~,~,j_v,~] = ind2sub(size(RANGES_U),i);
-    [~,~,~,j_m] = ind2sub(size(RANGES_U),i);
+    [j_lambda,~,~,~,~,~] = ind2sub(size(RANGES_U),i);
+    [~,j_t_hover,~,~,~,~] = ind2sub(size(RANGES_U),i);
+    [~,~,j_ar,~,~,~] = ind2sub(size(RANGES_U),i);
+    [~,~,~,j_w,~,~] = ind2sub(size(RANGES_U),i);
+    [~,~,~,~,j_v,~] = ind2sub(size(RANGES_U),i);
+    [~,~,~,~,~,j_m] = ind2sub(size(RANGES_U),i);
     F_AR(i) = AR_U(j_ar);
     F_WS(i) = wing_U(j_w);
     F_V(i) = v_U(j_v);

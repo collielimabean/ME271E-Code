@@ -25,26 +25,26 @@ profile_drag = fit(c_l(linear_range), c_d(linear_range), 'poly2');
 profile_lift = fit(alpha(linear_range), c_l(linear_range), 'poly1');
 
 %% H1, Part B plots
-c_d_hat = profile_drag(c_l(linear_range));
-c_l_hat = profile_lift(alpha(linear_range));
-
-figure
-hold on
-plot(c_d, c_l);
-plot(c_d_hat, c_l(linear_range));
-xlabel("c_d");
-ylabel("c_l");
-title("c_l vs c_d");
-legend("data", "fit");
-
-figure
-hold on
-plot(alpha, c_l);
-plot(alpha(linear_range), c_l_hat);
-xlabel("alpha");
-ylabel("c_l");
-title("c_l vs alpha");
-legend("data", "fit");
+% c_d_hat = profile_drag(c_l(linear_range));
+% c_l_hat = profile_lift(alpha(linear_range));
+% 
+% figure
+% hold on
+% plot(c_d, c_l);
+% plot(c_d_hat, c_l(linear_range));
+% xlabel("c_d");
+% ylabel("c_l");
+% title("c_l vs c_d");
+% legend("data", "fit");
+% 
+% figure
+% hold on
+% plot(alpha, c_l);
+% plot(alpha(linear_range), c_l_hat);
+% xlabel("alpha");
+% ylabel("c_l");
+% title("c_l vs alpha");
+% legend("data", "fit");
 
 %% propeller data
 [propellerdata, RPM_propellers] = propellerstuff();     % run to get the propeller information

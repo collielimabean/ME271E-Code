@@ -1,4 +1,4 @@
-function UAV = range_calculation_2(m_payload,v_cruise,b,AR)
+function UAV = range_calculation_2(m_payload, v_cruise, b, AR, t_hover, lambda)
     addpath('DontModify'); % Make sure Matlab can see all the functions it needs to call from the folder: 'DontModify'
 
     % load in the airfoil and propeller data that you calculated earlier. Make
@@ -27,6 +27,7 @@ function UAV = range_calculation_2(m_payload,v_cruise,b,AR)
     BODYMASS = zeros(size(RPMs));
     WINGMASS = zeros(size(RPMs));
     PROPULSIONMASS = zeros(size(RPMs));
+    FWDPROPULSIONMASS = zeros(size(RPMs));
     RangeForm = zeros(size(RPMs));
     
     % iterate over the RPMs to get the final value
@@ -35,15 +36,18 @@ function UAV = range_calculation_2(m_payload,v_cruise,b,AR)
         %% input specific for your UAV
         n = RPM_prop/60;                                        % propeller rotations per second
         S = b^2/AR;                                             % wing area calculation
-        n_props = 4;                                            % number of propellers
+        n_props = 5;                                            % total number of propellers
+        n_hover_props = 4;                                      % number of hover props
+        n_fwd_props = n_props - n_hover_props;                  % number of forward props
         m_avionics = 0.132;                                     % kg, avionics mass
         Dprop = 0.23;                                           % m, propeller diameter
         zeta = 1.3;                                             % max thrust to weight ratio (safety factor)
         m_prop = 10/1000;                                       % propeller weight (each)
         tovercroot = 0.12;                                      % wing root thickness to chord ratio 
-        lambda = 1;                                             % -, taper ratio    
+        
+        %lambda = 1;                                             % -, taper ratio    
         % t_hover = 60 for the final two parts of problem 1 and for problem of 2
-        t_hover = 60;                                            % s, hover time
+        %t_hover = 60;                                            % s, hover time
 
         %% general information on batteries/efficiencies (Li-ion) - given
         k_battery = 150;                                        % battery energy density, Wh/kg
@@ -76,7 +80,8 @@ function UAV = range_calculation_2(m_payload,v_cruise,b,AR)
         m_hold = m_fixed + m_battery;                            % cargo bay size
         BODYMASS(RPMk) = m_body;
         WINGMASS(RPMk) = m_wing;
-        PROPULSIONMASS(RPMk) = n_props*(m_motor+m_esc+m_prop);
+        FWDPROPULSIONMASS(RPMk) = n_fwd_props * (m_motor + m_esc + m_prop);
+        PROPULSIONMASS(RPMk) = n_hover_props * (m_motor + m_esc + m_prop);
         dims = [.1 .2 .25]*(m_hold^(1/3));                      % calculate the cargo bay size based off this (empirical)
         hbody = dims(1); 
         lbody = dims(3);
@@ -118,8 +123,8 @@ function UAV = range_calculation_2(m_payload,v_cruise,b,AR)
             Tprop_hover = m_total * g;
             Tprop_level = D_level;
             % calculate the needed thrust per propeller for both level and hovering flight       
-            Tprop_hover_per_prop = Tprop_hover / n_props;
-            Tprop_level_per_prop = Tprop_level / n_props;
+            Tprop_hover_per_prop = Tprop_hover / n_hover_props;
+            Tprop_level_per_prop = Tprop_level / n_fwd_props;
             % get the rotations per second needed for each of these using the provided functions        
             n_hover = find_n_for_thrust_static(static_prop, Dprop, rho, Tprop_hover_per_prop);
             n_level = find_n_for_thrust(propellerdata, RPM_propellers, v_cruise, Dprop, rho, Tprop_level_per_prop);
@@ -127,11 +132,11 @@ function UAV = range_calculation_2(m_payload,v_cruise,b,AR)
             J_level = v_cruise / (n_level * Dprop);
             J_level_iter(RPMk) = J_level;
             % get the propeller parameters for level flight
-            [CP_hover, CT_hover] = get_propeller_parameters_static(static_prop, RPM_prop);
-            [eta_level, CP_level, CT_level] = get_propeller_parameters(propellerdata, RPM_propellers, RPM_prop, J_level); 
+            [CP_hover, ~] = get_propeller_parameters_static(static_prop, RPM_prop);
+            [~, CP_level, CT_level] = get_propeller_parameters(propellerdata, RPM_propellers, RPM_prop, J_level); 
             % calculate the power needed for level and hovering flight
-            Pprop_hover = n_props * CP_hover * rho * n_hover^3 * Dprop^5;
-            Pprop_level = n_props * CP_level * rho * n_level^3 * Dprop^5;
+            Pprop_hover = n_hover_props * CP_hover * rho * n_hover^3 * Dprop^5;
+            Pprop_level = n_fwd_props * CP_level * rho * n_level^3 * Dprop^5;
             % store the propeller efficiency of each step, eta_props(RPMk) = ?;
             eta_props(RPMk) = J_level * (CT_level / CP_level);           % propeller efficiency
 
@@ -153,13 +158,13 @@ function UAV = range_calculation_2(m_payload,v_cruise,b,AR)
             m_total_output(RPMk) = m_total;
 
         %% Check range calculation against complete formula
-            %if t_hover == 0
+            if t_hover == 0
                 eta_propulsion = eta_esc * eta_motor * eta_props(RPMk);
                 Rformula = (k_battery * 3600 / g) * f_battery * Percent_BattMass * (CL / CD) * eta_propulsion; % range based on complete formula (m)
                 Rformula = Rformula/1000; % convert to km
                 RangeForm(RPMk) = max(Rformula);
-                %fprintf('R from code: %6.2f, R from formula: %6.2f\n', R, Rformula);
-            %end
+                fprintf('R from code: %6.2f, R from formula: %6.2f\n', R, Rformula);
+            end
         else
             % if there is no battery mass or the propeller is too big, skip the iteration
             GlideRatio(RPMk) = NaN;
@@ -174,8 +179,8 @@ function UAV = range_calculation_2(m_payload,v_cruise,b,AR)
     end
 
     % store all the outputs here
-    Index = find(Routput == nanmax(Routput),1); % If you want to maximize range
-    % Index = find(FlightTime == nanmax(FlightTime),1); % If you want to maximize flight time
+    %Index = find(Routput == nanmax(Routput),1); % If you want to maximize range
+    Index = find(FlightTime == nanmax(FlightTime),1); % If you want to maximize flight time
     if ~isempty(Index)
         UAV.range = Routput(Index);
         UAV.J = J_level_iter(Index);
@@ -189,6 +194,7 @@ function UAV = range_calculation_2(m_payload,v_cruise,b,AR)
         UAV.BODYMASS = BODYMASS(Index);
         UAV.WINGMASS = WINGMASS(Index);
         UAV.PROPULSIONMASS = PROPULSIONMASS(Index);
+        UAV.FWDPROPULSIONMASS = FWDPROPULSIONMASS(Index);
         UAV.rangeform = RangeForm(Index);
     else
         UAV.range = nan;
@@ -203,6 +209,7 @@ function UAV = range_calculation_2(m_payload,v_cruise,b,AR)
         UAV.BODYMASS = nan;
         UAV.WINGMASS = nan;
         UAV.PROPULSIONMASS = nan;
+        UAV.FWDPROPULSIONMASS = nan;
         UAV.rangeform = nan;
     end
 
